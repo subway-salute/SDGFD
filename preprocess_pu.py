@@ -4,11 +4,9 @@ import numpy as np
 import scipy.io as scio
 
 # ================= 配置区域 =================
-# 严格匹配你的 tree 目录树：数据就在当前目录(code)下的 data 文件夹里
 SRC_ROOT = r'./data/PU_raw'
 DST_ROOT = r'./data/PU'
 
-# 轴承分组 (保持不变)
 BEARING_GROUPS = {
     0: ['K001', 'K002', 'K003', 'K004', 'K005'],
     1: ['KI04', 'KI14', 'KI16', 'KI18', 'KI21'],
@@ -17,6 +15,8 @@ BEARING_GROUPS = {
 
 WIN_LEN = 1024
 STRIDE = 1024
+
+
 # ==========================================
 
 def load_mat_signal(fpath):
@@ -38,24 +38,16 @@ def load_mat_signal(fpath):
 
 def process_file(signal):
     if len(signal) < WIN_LEN: return None
-
     n_samples = (len(signal) - WIN_LEN) // STRIDE + 1
     samples = []
-
     for i in range(n_samples):
-        # 1. 直接截取时域波形
         sig = signal[i * STRIDE: i * STRIDE + WIN_LEN]
-
-        # 2. 纯时域 Z-Score 标准化 (消除基础绝对幅值差异，只保留振动形态比例)
-        # 绝对不要做 FFT！把频域变换的工作留给 GPU 中的 MARS_Module 动态完成！
         std = np.std(sig)
         if std > 1e-6:
             sig = (sig - np.mean(sig)) / std
         else:
             sig = sig - np.mean(sig)
-
         samples.append(sig)
-
     return np.array(samples) if samples else None
 
 
@@ -69,25 +61,19 @@ if __name__ == '__main__':
     count = 0
     for fpath in files:
         fname = os.path.basename(fpath)
-
         label = None
         for cls, codes in BEARING_GROUPS.items():
             for c in codes:
-                if c in fname:
-                    label = cls
-                    break
+                if c in fname: label = cls; break
             if label is not None: break
-
         if label is None: continue
 
-        # 提取工况，如 N15_M01
         parts = fname.split('_')
         cond = None
         for i in range(len(parts) - 1):
             if parts[i].startswith('N') and parts[i + 1].startswith('M'):
-                cond = f"{parts[i]}_{parts[i + 1]}"
+                cond = f"{parts[i]}_{parts[i + 1]}";
                 break
-
         if not cond: continue
 
         if cond not in buffer: buffer[cond] = {'X': [], 'Y': []}
@@ -96,23 +82,47 @@ if __name__ == '__main__':
         if raw is not None:
             samps = process_file(raw)
             if samps is not None:
-                buffer[cond]['X'].append(samps)
-                buffer[cond]['Y'].append(np.full(len(samps), label))
+                # 暂时将所有切片扁平化存入列表
+                for s in samps:
+                    buffer[cond]['X'].append(s)
+                    buffer[cond]['Y'].append(label)
                 count += 1
                 if count % 100 == 0: print(f"Processed {count} files...")
 
-    print("Saving...")
+    print("\n================ 开始执行严格的类别对齐 (Class Balancing) ================")
     for cond, data in buffer.items():
         if not data['X']: continue
-        X = np.concatenate(data['X'], axis=0).astype(np.float32)
-        # PyTorch 的 CrossEntropyLoss 要求 label 是 int64 (LongTensor)
-        Y = np.concatenate(data['Y'], axis=0).astype(np.int64)
+
+        y_array = np.array(data['Y'])
+        classes = np.unique(y_array)
+
+        # 统计每个类别的索引
+        class_indices = {c: np.where(y_array == c)[0] for c in classes}
+
+        # 找到样本数最少的类别数量
+        min_count = min([len(idx) for idx in class_indices.values()])
+        print(
+            f"[{cond}] 原始样本分布: { {c: len(idx) for c, idx in class_indices.items()} } -> 强制对齐至每个类: {min_count} 个")
+
+        balanced_X, balanced_Y = [], []
+
+        # 对每一个类别，随机抽取 min_count 个样本，保证绝对公平
+        for c, idx in class_indices.items():
+            # 锁定随机种子保证每次切分的数据一致
+            np.random.seed(42)
+            selected_idx = np.random.choice(idx, min_count, replace=False)
+            for i in selected_idx:
+                balanced_X.append(data['X'][i])
+                balanced_Y.append(data['Y'][i])
+
+        X = np.stack(balanced_X).astype(np.float32)
+        Y = np.array(balanced_Y).astype(np.int64)
 
         save_dir = os.path.join(DST_ROOT, cond)
         if not os.path.exists(save_dir): os.makedirs(save_dir)
 
         np.save(os.path.join(save_dir, 'data_X.npy'), X)
         np.save(os.path.join(save_dir, 'data_Y.npy'), Y)
-        print(f"Saved {cond}: X shape {X.shape}, Y shape {Y.shape}")
+        print(f"✅ Saved {cond}: X shape {X.shape}, Y shape {Y.shape}")
 
-    print("\n✅ 数据处理完毕！你可以直接去运行 main.py 了！")
+    print("\n🎉 数据处理及对齐完毕！你可以直接去运行 main.py 了！")
