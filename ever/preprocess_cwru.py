@@ -5,9 +5,9 @@ from scipy.fftpack import fft
 
 # ================= 配置区域 =================
 # 原始数据路径 (你的raw文件夹)
-SRC_ROOT = './data/cwru/raw'
+SRC_ROOT = '../data/cwru/raw'
 # 处理后保存路径
-DST_ROOT = './data/cwru/cwru_processed'
+DST_ROOT = '../data/cwru/cwru_processed'
 
 # CWRU 文件名映射表 (12k Drive End 数据)
 # 格式: {工况名: {类别名: [文件名列表]}}

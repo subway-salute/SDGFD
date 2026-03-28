@@ -3,7 +3,7 @@ import numpy as np
 import scipy.io as scio
 
 # Path to the specific file you want to inspect
-FILE_PATH = r"D:\last_works\code\data\PU_raw\K002\N09_M07_F10_K002_1.mat"
+FILE_PATH = r"/data/PU_raw/K002/N09_M07_F10_K002_1.mat"
 
 
 def inspect_mat_structure(path):

@@ -1,12 +1,11 @@
-import argparse
+import wandb
 import numpy as np
 import torch
 import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
-import wandb
-import os
 import random
+import os
 
 from construct_loader import construct_loader
 from module import FusionSOTANet
@@ -23,27 +22,21 @@ def set_seed(seed=42):
     torch.backends.cudnn.benchmark = False
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--data_root', type=str, default='./data')
-    parser.add_argument('--dataset', type=str, default='PU')
-    parser.add_argument('--source', type=str, required=True)
-    parser.add_argument('--target', type=str, required=True)
-    parser.add_argument('--batch_size', type=int, default=40)
-    parser.add_argument('--epoch', type=int, default=100)  # 科学的 100 轮设定
-
-    parser.add_argument('--lr', type=float, default=0.001)
-    parser.add_argument('--lamda_supcon', type=float, default=0.1)
-    parser.add_argument('--lamda_adv', type=float, default=1.0)
-    args = parser.parse_args()
-
+def train():
+    wandb.init()
+    config = wandb.config
     set_seed(42)
     device = torch.device('cuda')
 
-    wandb.init(project="PU_SDG_Fusion", name=f"{args.source}2{args.target}_Ultimate")
+    data_root = './data'
+    dataset = 'PU'
+    source = 'N15_M01'
+    target = 'N09_M07'
+    batch_size = 40
+    epochs = 40
 
-    train_loader = construct_loader(args.data_root, args.dataset, args.source, args.batch_size, True)
-    test_loader = construct_loader(args.data_root, args.dataset, args.target, args.batch_size, False)
+    train_loader = construct_loader(data_root, dataset, source, batch_size, True)
+    test_loader = construct_loader(data_root, dataset, target, batch_size, False)
 
     net = FusionSOTANet(num_classes=3).to(device)
 
@@ -51,15 +44,13 @@ def main():
     criterion_bce = nn.BCEWithLogitsLoss()
     criterion_sup = SupConLoss(temperature=0.1).to(device)
 
-    optimizer = optim.AdamW(net.parameters(), lr=args.lr, weight_decay=1e-4)
-    # 余弦退火学习率：极其平滑的收敛杀招
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epoch)
+    optimizer = optim.AdamW(net.parameters(), lr=config.lr, weight_decay=1e-4)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 
-    total_iters = args.epoch * len(train_loader)
+    total_iters = epochs * len(train_loader)
     iter_num = 0
-    tail_acc_list = []
 
-    for epoch in range(1, args.epoch + 1):
+    for epoch in range(1, epochs + 1):
         net.train()
         total_loss, correct, total = 0.0, 0, 0
 
@@ -68,20 +59,17 @@ def main():
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
 
-            # 对抗强度曲线计算
             p = float(iter_num) / total_iters
             alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1.0
             iter_num += 1
 
-            # 1. 物理小波纯净特征
             feat_ori = net.extract_FE(inputs)
 
-            # 2. 生成残差恶劣特征
-            z = torch.rand(B, 1).to(device)
-            y = torch.randn(B, 1).to(device)
+            # 动态噪声范围
+            z = torch.rand(B, 1).to(device) * config.noise_scale
+            y = torch.randn(B, 1).to(device) * config.noise_scale
             feat_latent = net.latent_gen(feat_ori, z, y)
 
-            # 3. 联合推理
             feat_all = torch.cat([feat_ori, feat_latent], dim=0)
             di_all = net.DI(feat_all)
             logits_all = net.classifier(di_all)
@@ -91,16 +79,12 @@ def main():
             logits_ori, logits_latent = torch.split(logits_all, B)
             proj_ori, proj_latent = torch.split(proj_all, B)
 
-            # 4. 三重 Loss 核心计算
             loss_cls = criterion_cls(logits_ori, labels) + criterion_cls(logits_latent, labels)
-
-            features_sup = torch.stack([proj_ori, proj_latent], dim=1)
-            loss_sup = criterion_sup(features_sup, labels)
+            loss_sup = criterion_sup(torch.stack([proj_ori, proj_latent], dim=1), labels)
 
             domain_label_ori = torch.zeros(B, 1).to(device)
             domain_label_latent = torch.ones(B, 1).to(device)
 
-            # 使用 Softmax 强制语义对齐，叠加 batchnorm_D 完美防御 NaN
             prob_ori = F.softmax(logits_ori.detach(), dim=1)
             prob_latent = F.softmax(logits_latent.detach(), dim=1)
 
@@ -113,42 +97,38 @@ def main():
             loss_adv = criterion_bce(pred_domain_ori, domain_label_ori) + criterion_bce(pred_domain_latent,
                                                                                         domain_label_latent)
 
-            loss = loss_cls + args.lamda_supcon * loss_sup + args.lamda_adv * loss_adv
+            loss = loss_cls + config.lamda_supcon * loss_sup + config.lamda_adv * loss_adv
 
             loss.backward()
             optimizer.step()
-
             total_loss += loss.item()
-            correct += logits_ori.argmax(1).eq(labels).sum().item()
-            total += B
 
         scheduler.step()
 
-        # =================== 测试阶段 ===================
         net.eval()
         all_labels, all_preds = [], []
         with torch.no_grad():
             for inputs, labels in test_loader:
-                feat = net.extract_FE(inputs.to(device))
-                logits = net.classifier(net.DI(feat))
+                logits = net.classifier(net.DI(net.extract_FE(inputs.to(device))))
                 all_labels.extend(labels.numpy())
                 all_preds.extend(logits.argmax(1).cpu().numpy())
 
         test_acc = 100. * np.mean(np.array(all_preds) == np.array(all_labels))
 
-        # 记录最后 10 轮用于求稳健平均值
-        if epoch > args.epoch - 10:
-            tail_acc_list.append(test_acc)
-
-        print(
-            f"Epoch [{epoch:03d}/{args.epoch}] | Loss: {total_loss / len(train_loader):.4f} | Acc: {test_acc:.2f}% | LR: {scheduler.get_last_lr()[0]:.6f}")
-        wandb.log({"Train/Loss": total_loss / len(train_loader), "Test/Accuracy": test_acc}, step=epoch)
-
-    avg_tail_acc = np.mean(tail_acc_list)
-    print(f"\n✅ 训练完毕! 最后 10 轮平均目标域准确率: {avg_tail_acc:.2f}%")
-    wandb.log({"Final/Tail_Avg_Acc": avg_tail_acc})
-    wandb.finish()
+        wandb.log({"Epoch": epoch, "Train_Loss": total_loss / len(train_loader), "Test_Acc": test_acc})
 
 
 if __name__ == '__main__':
-    main()
+    sweep_config = {
+        'method': 'random',
+        'name': 'Ultimate_Fusion_Tuning',
+        'metric': {'name': 'Test_Acc', 'goal': 'maximize'},
+        'parameters': {
+            'lr': {'values': [5e-4, 1e-3, 5e-3]},
+            'lamda_supcon': {'values': [0.05, 0.1, 0.5]},
+            'lamda_adv': {'values': [0.5, 1.0, 1.5]},
+            'noise_scale': {'values': [0.5, 1.0, 2.0]}
+        }
+    }
+    sweep_id = wandb.sweep(sweep_config, project="PU_SDG_Fusion")
+    wandb.agent(sweep_id, train, count=15)

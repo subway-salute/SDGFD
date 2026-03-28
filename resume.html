@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>帅思奇的复试简历</title>
+    <style>
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 40px 50px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        header {
+            text-align: center;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 32px;
+            color: #2c3e50;
+            letter-spacing: 2px;
+        }
+        .contact-info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #555;
+        }
+        .contact-info span {
+            margin: 0 10px;
+        }
+        section {
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-size: 18px;
+            color: #2c3e50;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .item {
+            margin-bottom: 15px;
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 5px;
+        }
+        .item-title {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .item-subtitle {
+            font-size: 14px;
+            color: #666;
+            font-weight: bold;
+        }
+        .item-date {
+            font-size: 14px;
+            color: #666;
+        }
+        .item-content {
+            font-size: 14px;
+            margin: 0;
+            padding-left: 20px;
+        }
+        .item-content li {
+            margin-bottom: 6px;
+        }
+        .skills-list {
+            font-size: 14px;
+            padding-left: 20px;
+        }
+        .skills-list li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>帅思奇</h1>
+        <div class="contact-info">
+            <span>📞 138-XXXX-XXXX</span> |
+            <span>✉️ email@example.com</span> |
+            <span>🎓 报考专业：人工智能</span>
+        </div>
+    </header>
+
+    <section>
+        <div class="section-title">教育背景</div>
+        <div class="item">
+            <div class="item-header">
+                <span class="item-title">某某大学（211工程）</span>
+                <span class="item-date">2022.09 - 2026.06</span>
+            </div>
+            <div class="item-header">
+                <span class="item-subtitle">人工智能 | 本科 (大四在读)</span>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="section-title">竞赛与荣誉</div>
+        <div class="item">
+            <div class="item-header">
+                <span class="item-title">全国大学生数学竞赛（非数学类）</span>
+                <span class="item-date">202X年</span>
+            </div>
+            <ul class="item-content">
+                <li><strong>预赛一等奖</strong>：具备扎实的高等数学、线性代数等数理基础，逻辑推导与复杂公式推演能力强，为深入理解深度学习底层算法与损失函数机制打下坚实基础。</li>
+            </ul>
+        </div>
+    </section>
+
+    <section>
+        <div class="section-title">科研与项目经历</div>
+
+        <div class="item">
+            <div class="item-header">
+                <span class="item-title">基于单域泛化的旋转机械故障诊断方法研究 (毕业设计)</span>
+                <span class="item-date">2025.12 - 至今</span>
+            </div>
+            <div class="item-header">
+                <span class="item-subtitle">独立研究与核心代码开发</span>
+            </div>
+            <ul class="item-content">
+                <li><strong>研究背景</strong>：针对工业场景中设备变工况（如负载、转速突变）导致的数据分布偏移（Domain Shift）问题，在极其严苛的“纯单域”设定下，研究并开发具有强未知工况泛化能力的诊断模型。</li>
+                <li><strong>算法设计</strong>：
+                    <ul>
+                        <li>以 <strong>ResNet-1D</strong> 为主干网络对一维频域信号（FFT处理）进行拓扑特征提取。</li>
+                        <li><strong>特征级伪域生成</strong>：在网络浅层嵌入 <strong>MixStyle</strong> 软扰动模块，基于 Beta 分布在 Batch 内随机混合特征的均值与方差，主动裂变生成海量“伪工况”，打破模型对源域背景噪声的过度依赖。</li>
+                        <li><strong>深层硬清洗与去偏</strong>：在深层引入 <strong>Instance Whitening (实例白化)</strong>，无仿射恢复地消除深层特征的风格偏移，保留最纯粹的故障语义。</li>
+                        <li><strong>双分支一致性博弈机制</strong>：搭建干净分支与扰动分支，引入 <strong>协方差矩阵对齐 (Covariance Alignment)</strong> 与 <strong>交叉白化损失</strong> 约束全局统计分布；并在分类器前融合 <strong>监督对比损失 (SupConLoss)</strong>，在特征空间实现“同类聚拢、异类排斥”。</li>
+                    </ul>
+                </li>
+                <li><strong>工程实现</strong>：独立完成基于 <strong>PyTorch</strong> 的算法落地，设计模块化消融实验控制开关，并采用 <strong>自动混合精度 (AMP)</strong> 优化显存占用，模型在 PU (Paderborn) 齿轮箱高难度跨域数据集上成功收敛并显著克服了负迁移现象。</li>
+            </ul>
+        </div>
+
+        <div class="item">
+            <div class="item-header">
+                <span class="item-title">基于知识图谱的推荐系统模型构建 (课程核心项目)</span>
+                <span class="item-date">2026.01</span>
+            </div>
+            <div class="item-header">
+                <span class="item-subtitle">核心组员</span>
+            </div>
+            <ul class="item-content">
+                <li>研究并将 EditKG 与 KGRec 相结合，探索知识图谱推荐算法的优化路径。</li>
+                <li>与团队成员（3人组）紧密协作完成技术分工，负责部分核心模型的结构设计与实验报告撰写。</li>
+            </ul>
+        </div>
+    </section>
+
+    <section>
+        <div class="section-title">专业技能</div>
+        <ul class="skills-list">
+            <li><strong>编程与框架</strong>：熟练使用 <strong>Python</strong> 进行数据科学与算法开发；熟练掌握 <strong>PyTorch</strong> 深度学习框架，熟悉自定义 Dataset 构建、多重 Loss 联合训练逻辑以及底层的张量计算。</li>
+            <li><strong>科研与学术能力</strong>：具备优秀的英文前沿文献检索与精读能力（能独立阅读并深入剖析 IEEE TII 等工业人工智能顶刊论文），能够敏锐捕捉学术前沿思想（如对抗学习、对比学习）并将其转换为可执行的算法代码。</li>
+            <li><strong>数据处理分析</strong>：熟练使用 Numpy、Pandas，掌握一维振动信号的 FFT (快速傅里叶变换) 等底层预处理方法。</li>
+        </ul>
+    </section>
+</div>
+
+</body>
+</html>

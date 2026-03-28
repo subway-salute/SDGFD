@@ -7,7 +7,7 @@ import subprocess
 PYTHON_EXEC = sys.executable
 
 # 数据集根目录 (根据你的目录结构 D:\LAST_WORKS\CODE\data\PU\PU_processed)
-DATA_ROOT = os.path.join("data", "PU", "PU_processed")
+DATA_ROOT = os.path.join("../data", "PU", "PU_processed")
 
 # 定义 PU 数据集的三个工况文件夹名
 DOMAINS = ["N15_M07", "N09_M07", "N15_M01"]

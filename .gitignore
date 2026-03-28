@@ -3,5 +3,8 @@ __pycache__/
 *.pyc
 data/
 result*/
+wandb/
+ever*/
 *.npy
 *.mat
+logs/
