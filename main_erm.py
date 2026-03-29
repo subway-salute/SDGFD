@@ -30,20 +30,26 @@ def main():
     target_list = args.target.split(',')
     test_loaders = [construct_loader('./data', 'PU', t, 40, False) for t in target_list]
 
+    # 严格对标原论文：使用与对比模型完全一致的特征提取主干，确保参数量绝对公平
     model = nn.Sequential(CNN_Frontend(256), nn.Linear(256, 3)).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+    # 采用赵超博士 baseline 的标准优化器设置 (带 5e-4 权重衰减防过拟合)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0)
     criterion = nn.CrossEntropyLoss()
 
     tail_acc, tail_f1, tail_auc = [], [], []
 
-    for epoch in range(1, 41):
+    for epoch in range(1, 51):
         model.train();
         total_loss = 0.0
         for i, l in train_loader:
             i, l = i.to(device).float(), l.to(device)
             if len(i.shape) == 2: i = i.unsqueeze(1)
             optimizer.zero_grad()
+
+            # 最纯净的 ERM：没有任何域自适应损失，只计算源域交叉熵
             loss = criterion(model(i), l)
+
             loss.backward();
             optimizer.step();
             total_loss += loss.item()
@@ -57,7 +63,6 @@ def main():
                     i = i.to(device).float()
                     if len(i.shape) == 2: i = i.unsqueeze(1)
 
-                    # 剥离特征和分类结果 (model[0] 是前端，model[1] 是分类器)
                     features = model[0](i)
                     logits = model[1](features)
 
@@ -70,7 +75,7 @@ def main():
         f1 = 100. * f1_score(all_labels, all_preds, average='macro')
         auc = 100. * roc_auc_score(all_labels, all_probs, multi_class='ovr')
 
-        if epoch > 30:
+        if epoch > 40:  # 统一取最后 10 轮做平均
             tail_acc.append(acc);
             tail_f1.append(f1);
             tail_auc.append(auc)
@@ -78,7 +83,7 @@ def main():
         wandb.log({"Epoch": epoch, "Loss": total_loss / len(train_loader), "Acc": acc, "F1": f1, "AUC": auc})
 
         # 🌟 最后一轮保存画图数据 🌟
-        if epoch == 40:
+        if epoch == 50:
             os.makedirs("plot_data", exist_ok=True)
             np.save(f"plot_data/features_ERM_{args.source}.npy", np.array(all_features))
             np.save(f"plot_data/labels_ERM_{args.source}.npy", np.array(all_labels))

@@ -152,7 +152,7 @@ def main():
 
     tail_acc, tail_f1, tail_auc = [], [], []
 
-    for epoch in range(1, 41):
+    for epoch in range(1, 51):
         net.train();
         total_loss = 0.0
         for inputs, labels in train_loader:
@@ -198,7 +198,7 @@ def main():
         f1 = 100. * f1_score(all_labels, all_preds, average='macro')
         auc = 100. * roc_auc_score(all_labels, all_probs, multi_class='ovr')
 
-        if epoch > 30:
+        if epoch > 40:
             tail_acc.append(acc);
             tail_f1.append(f1);
             tail_auc.append(auc)
@@ -206,7 +206,7 @@ def main():
         wandb.log({"Epoch": epoch, "Loss": total_loss / len(train_loader), "Acc": acc, "F1": f1, "AUC": auc})
 
         # 🌟 最后一轮保存画图数据 🌟
-        if epoch == 40:
+        if epoch == 50:
             os.makedirs("plot_data", exist_ok=True)
             np.save(f"plot_data/features_DACN_{args.source}.npy", np.array(all_features))
             np.save(f"plot_data/labels_DACN_{args.source}.npy", np.array(all_labels))

@@ -2,19 +2,19 @@ import subprocess
 import pandas as pd
 import sys
 
-
 def run_cmd(cmd):
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     final_acc = 0.0
     for line in process.stdout:
+        # 捕获 WandB 的实时面板链接并打印
         if "View run at" in line:
             url = line.split("View run at")[-1].strip()
             print(f"    [🔗 Live Tracking] {url}")
+        # 捕获每个模型跑完后的最终准确率
         elif "FINAL_ACCURACY:" in line:
             final_acc = float(line.split(":")[1])
     process.wait()
     return final_acc
-
 
 def main():
     tasks = [
@@ -23,16 +23,17 @@ def main():
         ('N09_M07', 'N15_M01,N15_M07')
     ]
 
-    # 四大核心 SOTA 矩阵
+    # 终极五大核心 SOTA 矩阵
     models = {
-        'ERM': 'main_erm.py',
-        'DWCN (TII 2024)': 'main_DWCN.py',
-        'SDAGN (AEI 2024)': 'main_bdc.py',
-        'OURS (Fusion)': 'main.py'
+        'ERM (50E)': 'main_erm.py',
+        'DACN (50E)': 'main_dacn.py',
+        'DWCN (100E)': 'main_DWCN.py',
+        'BDC (100E)': 'main_bdc.py',
+        'OURS (50E)': 'main.py'
     }
 
     print("=" * 70)
-    print("🚀 Starting Main Benchmark Evaluation...")
+    print("🚀 Starting Final Benchmark Evaluation (5 Models)...")
     print("📊 Target Project: PU_Main_Benchmark")
     print("=" * 70)
 
@@ -58,9 +59,8 @@ def main():
     df.at['Average', 'Target'] = 'ALL'
 
     df.to_csv("Benchmark_Results_Final.csv", index=False)
-    print("\n✅ Main Evaluation complete. Results saved to Benchmark_Results_Final.csv.")
+    print("\n✅ Final Evaluation complete. Results saved to Benchmark_Results_Final.csv.")
     print(df)
-
 
 if __name__ == "__main__":
     main()

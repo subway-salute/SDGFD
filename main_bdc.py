@@ -183,7 +183,7 @@ def main():
     set_seed(42);
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    wandb.init(project="PU_Main_Benchmark", name=f"BDC_{args.source}", config=vars(args))
+    wandb.init(project="PU_Final_6Models", name=f"BDC_{args.source}", config=vars(args))
     train_loader = construct_loader('./data', 'PU', args.source, 40, True)
     test_loaders = [construct_loader('./data', 'PU', t, 40, False) for t in args.target.split(',')]
 
