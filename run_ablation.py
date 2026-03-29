@@ -23,17 +23,16 @@ def main():
         ('N09_M07', 'N15_M01,N15_M07')
     ]
 
-    # 四大核心 SOTA 矩阵
-    models = {
-        'ERM': 'main_erm.py',
-        'DWCN (TII 2024)': 'main_DWCN.py',
-        'SDAGN (AEI 2024)': 'main_bdc.py',
-        'OURS (Fusion)': 'main.py'
+    variants = {
+        'Var A (Basic CNN)': 'A',
+        'Var B (+ Wavelet)': 'B',
+        'Var C (+ Wavelet + ADAIN)': 'C',
+        'Var D (Full Model)': 'D'
     }
 
     print("=" * 70)
-    print("🚀 Starting Main Benchmark Evaluation...")
-    print("📊 Target Project: PU_Main_Benchmark")
+    print("🧩 Starting Ablation Study...")
+    print("📊 Target Project: PU_Ablation_Study")
     print("=" * 70)
 
     results = []
@@ -41,15 +40,15 @@ def main():
         print(f"\nTask: {src} -> {tgt}")
         task_res = {'Source': src, 'Target': tgt}
 
-        for name, script in models.items():
-            print(f"  Evaluating {name:<20} ", flush=True)
-            cmd = [sys.executable, script, "--source", src, "--target", tgt]
+        for name, var_code in variants.items():
+            print(f"  Evaluating {name:<25} ", flush=True)
+            cmd = [sys.executable, "main_ablation.py", "--source", src, "--target", tgt, "--variant", var_code]
             acc = run_cmd(cmd)
             task_res[name] = acc
             print(f"  -> Score: {acc:.2f}%\n")
 
         results.append(task_res)
-        pd.DataFrame(results).to_csv("Benchmark_Results_Temp.csv", index=False)
+        pd.DataFrame(results).to_csv("Ablation_Results_Temp.csv", index=False)
 
     df = pd.DataFrame(results)
     numeric_cols = df.columns.drop(['Source', 'Target'])
@@ -57,8 +56,8 @@ def main():
     df.at['Average', 'Source'] = 'ALL'
     df.at['Average', 'Target'] = 'ALL'
 
-    df.to_csv("Benchmark_Results_Final.csv", index=False)
-    print("\n✅ Main Evaluation complete. Results saved to Benchmark_Results_Final.csv.")
+    df.to_csv("Ablation_Results_Final.csv", index=False)
+    print("\n✅ Ablation Study complete. Results saved to Ablation_Results_Final.csv.")
     print(df)
 
 

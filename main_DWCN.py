@@ -107,7 +107,7 @@ def main():
     set_seed(42);
     device = torch.device('cuda')
 
-    wandb.init(project="PU_Thesis_Final", name=f"DWCN_{args.source}", config=vars(args))
+    wandb.init(project="PU_Final_6Models", name=f"DWCN_{args.source}", config=vars(args))
     train_loader = construct_loader('./data', 'PU', args.source, 40, True)
 
     target_list = args.target.split(',')
